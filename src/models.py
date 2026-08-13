@@ -13,7 +13,6 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
     if model_name == "inception":
         md = models.Inception3(init_weights=models.Inception_V3_Weights.DEFAULT,aux_logits=False)
         md.fc = nn.Sequential(
-            nn.Dropout(.25),
             setXavier_(nn.Linear(2048,num_outs)),
         )
         return md
