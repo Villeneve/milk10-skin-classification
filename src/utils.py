@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 from torchvision.transforms import v2
+from sklearn.model_selection import train_test_split
 
 import matplotlib.pyplot as plt
 
@@ -22,22 +23,36 @@ def setXavier_(layer):
     return layer
 
 class ImageLoader(Dataset):
-    def __init__(self, imgs_path:str, metadata_path:str, transforms=None):
+    def __init__(self, imgs_path:str, metadata_path:str, transforms=None, train=True):
         super().__init__()
         self.imgs_path = imgs_path
         self.transforms = transforms
+        self.train = train
         self.df = pd.read_csv(metadata_path,)
         self.df = self.df.loc[:,["isic_id","image_type","diagnosis_1"]]
         self.df["diagnosis_1"] = self.df["diagnosis_1"].apply(lambda x: 0 if x == "Benign" else 1)
         self.df["image_type"] = self.df["image_type"].apply(lambda x: 1 if x == "dermoscopic" else 0)
+        self.df_train,self.df_test = train_test_split(
+            self.df,
+            test_size=.20,
+            random_state=42,
+            stratify=self.df["diagnosis_1"]
+        )
     
     def __getitem__(self, idx):
-        img = Image.open(self.imgs_path+self.df.iloc[idx]["isic_id"]+".jpg")
-        if self.transforms is not None:
-            img = self.transforms(img)
-        return img, *self.df.iloc[idx][["image_type","diagnosis_1"]].tolist()
+        if self.train:
+            img = Image.open(self.imgs_path+self.df_train.iloc[idx]["isic_id"]+".jpg")
+            if self.transforms is not None:
+                img = self.transforms(img)
+            return img, *self.df_train.iloc[idx][["image_type","diagnosis_1"]].tolist()
+        else:
+            img = Image.open(self.imgs_path+self.df_test.iloc[idx]["isic_id"]+".jpg")
+            if self.transforms is not None:
+                img = self.transforms(img)
+            return img, *self.df_test.iloc[idx][["image_type","diagnosis_1"]].tolist()
+
     def __len__(self):
-        return len(self.df)
+        return len(self.df_train) if self.train else len(self.df_test)
 
 def printImage():
     for img,imgType,label in tqdm(data):
@@ -71,5 +86,3 @@ if __name__ == "__main__":
     #     drop_last=True,
     #     pin_memory=True,
     # )
-
-    print(data.df["diagnosis_1"].value_counts())
