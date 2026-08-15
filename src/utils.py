@@ -1,5 +1,7 @@
 import torch
+from torch.utils.data import Dataset
 
+import pandas as pd
 import os
 
 def setKaiming_(layer,alpha=0.0):
@@ -12,9 +14,10 @@ def setXavier_(layer):
     torch.nn.init.zeros_(layer.bias)
     return layer
 
-class Data(torch.utils.data.dataset):
-    def __init__(self):
+class ImageLoader(Dataset):
+    def __init__(self, imgs_path:str, metadata_path:str):
         super().__init__()
-    def __get
+    def __getitem__(self, key):
+        pass
     def forward(self, x:torch.Tensor):
         return
