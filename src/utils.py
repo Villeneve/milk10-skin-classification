@@ -30,6 +30,7 @@ class ImageLoader(Dataset):
         self.train = train
         self.df = pd.read_csv(metadata_path,)
         self.df = self.df.loc[:,["isic_id","image_type","diagnosis_1"]]
+        self.df = self.df[self.df['diagnosis_1']!="Inderteminate"]
         self.df["diagnosis_1"] = self.df["diagnosis_1"].apply(lambda x: 0 if x == "Benign" else 1)
         self.df["image_type"] = self.df["image_type"].apply(lambda x: 1 if x == "dermoscopic" else 0)
         self.df_train,self.df_test = train_test_split(
