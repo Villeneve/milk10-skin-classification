@@ -30,7 +30,7 @@ class ImageLoader(Dataset):
         self.train = train
         self.df = pd.read_csv(metadata_path,)
         self.df = self.df.loc[:,["isic_id","image_type","diagnosis_1"]]
-        self.df = self.df[self.df['diagnosis_1']!="Inderteminate"]
+        self.df = self.df[self.df['diagnosis_1']!="Indeterminate"]
         self.df["diagnosis_1"] = self.df["diagnosis_1"].apply(lambda x: 0 if x == "Benign" else 1)
         self.df["image_type"] = self.df["image_type"].apply(lambda x: 1 if x == "dermoscopic" else 0)
         self.df_train,self.df_test = train_test_split(
@@ -55,6 +55,9 @@ class ImageLoader(Dataset):
     def __len__(self):
         return len(self.df_train) if self.train else len(self.df_test)
 
+    def counter(self):
+        return self.df_train["diagnosis_1"].value_counts() if self.train else self.df_test["diagnosis_1"].value_counts()
+
 def printImage():
     for img,imgType,label in tqdm(data):
         img = img[0].permute(1,2,0).cpu().numpy()/2+1/2
@@ -71,14 +74,19 @@ if __name__ == "__main__":
         metadata_path="/storage/SSD1/.data/milk10k/metadata.csv",
         transforms=v2.Compose([
             v2.Resize(256),
-            v2.Pad(256//2,padding_mode='reflect'),
-            v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
+            # v2.Pad(256//2,padding_mode='reflect'),
+            # v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
             v2.CenterCrop((256,256)),
             v2.ToImage(),
             v2.ToDtype(torch.float32,scale=True),
             v2.Normalize([.5]*3,[.5]*3)
-        ])
+        ]),
+        train=True
     )
+    c = 0
+    for image in tqdm(data):
+        c += 1
+    print(c)
     # data = DataLoader(
     #     data,
     #     batch_size=1,
