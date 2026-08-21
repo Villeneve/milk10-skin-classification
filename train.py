@@ -137,7 +137,15 @@ for epoch in epoch_bar:
     val_acc,matrix = accuracy(model,val_data,save=True)
     if val_acc > best_acc:
         best_acc = val_acc
-        torch.save(model.state_dict(),f'best_{args.model}.pt')
+        dict_save = {
+            "model_name":args.model,
+            "model":model.state_dict(),
+            "opt":opt.state_dict(),
+            "epochs":args.epochs,
+            "acc":best_acc,
+            "matrix":matrix
+        }
+        torch.save(dict_save,f'best_{args.model}.pt')
         heatmap(matrix,fmt='.2f',annot=True)
         plt.savefig(f'confusion_matrix_{args.model}.png')
         plt.close()
