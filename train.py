@@ -43,10 +43,16 @@ parser.add_argument(
     type=float,
     default=1e-3,
 )
+parser.add_argument(
+    '-gpu',
+    type=int,
+    default=0,
+    required=True,
+)
 args = parser.parse_args()
 
 #%%
-gpu = torch.device("cuda:1")
+gpu = torch.device(f"cuda:{args.gpu}")
 model = get_model(args.model).to(gpu)
 model.eval()
 lce = torch.nn.CrossEntropyLoss(weight=torch.tensor([8187/(2*2373),8187/(2*5814)],device=gpu))
@@ -59,16 +65,17 @@ opt = torch.optim.Adam(
 data = ImageLoader(
         imgs_path="/storage/SSD1/.data/milk10k/images/",
         metadata_path="/storage/SSD1/.data/milk10k/metadata.csv",
-        # transforms=v2.Compose([
-        #     v2.Resize(256),
-        #     # v2.Pad(256//2,padding_mode='reflect'),
-        #     # v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
-        #     v2.CenterCrop((256,256)),
-        #     v2.ToImage(),
-        #     v2.ToDtype(torch.float32,scale=True),
-        #     v2.Normalize([.5]*3,[.5]*3)
-        # ]),
-        transforms=model.transforms(),
+        transforms=v2.Compose([
+            v2.Resize(256),
+            v2.Pad(256//2,padding_mode='reflect'),
+            v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
+            v2.CenterCrop((256,256)),
+            # v2.ToImage(),
+            # v2.ToDtype(torch.float32,scale=True),
+            # v2.Normalize([.5]*3,[.5]*3)
+            model.transforms(),
+        ]),
+        # transforms=model.transforms(),
         train=True
     )
 data = DataLoader(
@@ -81,15 +88,6 @@ data = DataLoader(
 val_data = ImageLoader(
         imgs_path="/storage/SSD1/.data/milk10k/images/",
         metadata_path="/storage/SSD1/.data/milk10k/metadata.csv",
-        # transforms=v2.Compose([
-        #     v2.Resize(256),
-        #     # v2.Pad(256//2,padding_mode='reflect'),
-        #     # v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
-        #     v2.CenterCrop((256,256)),
-        #     v2.ToImage(),
-        #     v2.ToDtype(torch.float32,scale=True),
-        #     v2.Normalize([.5]*3,[.5]*3)
-        # ]),
         transforms=model.transforms(),
         train=False
     )
