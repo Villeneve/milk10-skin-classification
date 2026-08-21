@@ -61,21 +61,19 @@ opt = torch.optim.Adam(
     args.learning_rate,
 )
 
+aug_transform=v2.Compose([
+    v2.Resize(256),
+    v2.Pad(256//2,padding_mode='reflect'),
+    v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
+    v2.CenterCrop((256,256)),
+    model.transforms(),
+])
+
 #%%
 data = ImageLoader(
         imgs_path="/storage/SSD1/.data/milk10k/images/",
         metadata_path="/storage/SSD1/.data/milk10k/metadata.csv",
-        transforms=v2.Compose([
-            v2.Resize(256),
-            v2.Pad(256//2,padding_mode='reflect'),
-            v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
-            v2.CenterCrop((256,256)),
-            # v2.ToImage(),
-            # v2.ToDtype(torch.float32,scale=True),
-            # v2.Normalize([.5]*3,[.5]*3)
-            model.transforms(),
-        ]),
-        # transforms=model.transforms(),
+        transforms=v2.ToImage(),
         train=True
     )
 data = DataLoader(
@@ -83,7 +81,9 @@ data = DataLoader(
     batch_size=args.batch_size,
     shuffle=True,
     num_workers=4,
-    pin_memory=True
+    pin_memory=True,
+    persistent_workers=True,
+    prefetch_factor=4,
 )
 val_data = ImageLoader(
         imgs_path="/storage/SSD1/.data/milk10k/images/",
@@ -116,8 +116,9 @@ for epoch in epoch_bar:
         # print("\nNova etapa")
 
     for img,_,label in batch_bar:
-        img = img.to(gpu)
-        label = label.to(gpu)
+        img = img.to(gpu, non_blocking=True)
+        img = aug_transform(img)
+        label = label.to(gpu, non_blocking=True)
         output = model(img)
         loss_ = lce(output,label)
         opt.zero_grad()
