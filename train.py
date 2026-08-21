@@ -96,6 +96,7 @@ val_data = DataLoader(
     batch_size=256,
     shuffle=False,
     num_workers=4,
+    prefetch_factor=2,
     pin_memory=False
 )
 
@@ -107,9 +108,10 @@ best_acc = -1
 model.eval()
 for epoch in epoch_bar:
     batch_bar = tqdm(data,position=1,leave=False)
+    # print(torch.cuda.memory_summary(gpu))
 
     if epoch == args.epochs//2:
-        opt.param_groups[0]['lr'] = 1e-5
+        opt.param_groups[0]['lr'] = 1e-4
         for p in model.parameters():
             p.requires_grad_(True)
         model.train()
