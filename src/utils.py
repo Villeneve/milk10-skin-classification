@@ -4,6 +4,9 @@ from torch.utils.data import Dataset, DataLoader
 
 from torchvision.transforms import v2
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import confusion_matrix
+from seaborn import heatmap
 
 import matplotlib.pyplot as plt
 
@@ -67,6 +70,28 @@ def printImage():
         break
     return
 
+def accuracy(model:torch.nn.Module,dataset,save=False):
+    acc = 0
+    total = 0
+    device = next(model.parameters()).device
+    all_labels,all_outputs = [],[]
+    mode = model.training
+    model.eval()
+    for img,_,label in dataset:
+        img = img.to(device)
+        label = label.to(device)
+        with torch.inference_mode():
+            output = model(img)
+        all_labels.append(label)
+        all_outputs.append(output.argmax(1))
+    model.train(mode)
+    all_labels = torch.cat(all_labels,0).cpu().numpy()
+    all_outputs = torch.cat(all_outputs,0).cpu().numpy()
+    matrix = confusion_matrix(all_labels,all_outputs,normalize='true')*100
+    acc = balanced_accuracy_score(all_labels,all_outputs)
+    return acc*100,matrix
+
+
 if __name__ == "__main__":
 
     data = ImageLoader(
@@ -83,10 +108,7 @@ if __name__ == "__main__":
         ]),
         train=True
     )
-    c = 0
-    for image in tqdm(data):
-        c += 1
-    print(c)
+    print(data.counter())
     # data = DataLoader(
     #     data,
     #     batch_size=1,
@@ -95,3 +117,4 @@ if __name__ == "__main__":
     #     drop_last=True,
     #     pin_memory=True,
     # )
+# %%
