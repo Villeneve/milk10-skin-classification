@@ -56,9 +56,10 @@ gpu = torch.device(f"cuda:{args.gpu}")
 model = get_model(args.model).to(gpu)
 model.eval()
 lce = torch.nn.CrossEntropyLoss(weight=torch.tensor([8187/(2*2373),8187/(2*5814)],device=gpu))
-opt = torch.optim.Adam(
+opt = torch.optim.AdamW(
     model.parameters(),
     args.learning_rate,
+    weight_decay=1e-4
 )
 
 aug_transform=v2.Compose([
