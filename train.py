@@ -21,7 +21,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--model",
-    choices=["inception","vgg16","resnet34"],
+    choices=["inception","vgg16","resnet34","efficient"],
     required=True,
     help="Escolha o modelo para o classificador",
 )
@@ -62,18 +62,24 @@ opt = torch.optim.Adam(
 )
 
 aug_transform=v2.Compose([
-    v2.Resize(256),
-    v2.Pad(55,padding_mode='reflect'),
+    v2.Resize(model.transforms().resize_size[0]),
+    v2.ToDtype(torch.float32,scale=True),
+    v2.Pad(int(model.transforms().crop_size[0]/2**.5-model.transforms().resize_size[0]/2+1),padding_mode='reflect'),
     v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
-    v2.CenterCrop((256,256)),
-    model.transforms(),
+    v2.CenterCrop((model.transforms().crop_size[0],model.transforms().crop_size[0])),
+    v2.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+])
+val_tf = v2.Compose([
+    v2.Resize(model.transforms().resize_size[0]),
+    v2.CenterCrop((model.transforms().crop_size[0],model.transforms().crop_size[0])),
+    v2.ToDtype(torch.float32,scale=True),
+    v2.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
 ])
 
 #%%
 data = ImageLoader(
         imgs_path="/storage/SSD1/.data/milk10k/images/",
         metadata_path="/storage/SSD1/.data/milk10k/metadata.csv",
-        transforms=v2.ToImage(),
         train=True,
     )
 data = DataLoader(
@@ -88,8 +94,8 @@ data = DataLoader(
 val_data = ImageLoader(
         imgs_path="/storage/SSD1/.data/milk10k/images/",
         metadata_path="/storage/SSD1/.data/milk10k/metadata.csv",
-        transforms=model.transforms(),
         train=False,
+        transforms=val_tf
     )
 val_data = DataLoader(
     val_data,
@@ -97,7 +103,8 @@ val_data = DataLoader(
     shuffle=False,
     num_workers=4,
     prefetch_factor=2,
-    pin_memory=False
+    pin_memory=False,
+    persistent_workers=True
 )
 
 #%%

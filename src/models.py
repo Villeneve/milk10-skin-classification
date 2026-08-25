@@ -23,6 +23,18 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
             p.requires_grad_(True)
         md.transforms = models.Inception_V3_Weights.DEFAULT.transforms
         return md
+
+    if model_name == "efficient":
+            md = models.efficientnet_v2_s(weights=models.EfficientNet_V2_S_Weights.DEFAULT)
+            md.classifier = nn.Sequential(
+                setXavier_(nn.Linear(1280,num_outs)),
+            )
+            for p in md.features.parameters():
+                p.requires_grad_(False)
+            for p in md.classifier.parameters():
+                p.requires_grad_(True)
+            md.transforms = models.EfficientNet_V2_S_Weights.DEFAULT.transforms
+            return md
     
     if model_name == "vgg16":
         md = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
@@ -54,7 +66,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--model",
-        choices=["inception","vgg16","resnet34"],
+        choices=["inception","vgg16","resnet34","efficient"],
         required=True,
         help="Escolha o modelo para o classificador",
     )

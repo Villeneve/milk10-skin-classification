@@ -2,7 +2,9 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 
+import torchvision
 from torchvision.transforms import v2
+from torchvision.io import decode_image
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.metrics import confusion_matrix
@@ -45,12 +47,12 @@ class ImageLoader(Dataset):
     
     def __getitem__(self, idx):
         if self.train:
-            img = Image.open(self.imgs_path+self.df_train.iloc[idx]["isic_id"]+".jpg")
+            img = decode_image(self.imgs_path+self.df_train.iloc[idx]["isic_id"]+".jpg",mode=torchvision.io.ImageReadMode.RGB)
             if self.transforms is not None:
                 img = self.transforms(img)
             return img, *self.df_train.iloc[idx][["image_type","diagnosis_1"]].tolist()
         else:
-            img = Image.open(self.imgs_path+self.df_test.iloc[idx]["isic_id"]+".jpg")
+            img = decode_image(self.imgs_path+self.df_test.iloc[idx]["isic_id"]+".jpg",mode=torchvision.io.ImageReadMode.RGB)
             if self.transforms is not None:
                 img = self.transforms(img)
             return img, *self.df_test.iloc[idx][["image_type","diagnosis_1"]].tolist()
@@ -70,9 +72,8 @@ def printImage():
         break
     return
 
-def accuracy(model:torch.nn.Module,dataset,save=False):
+def accuracy(model:torch.nn.Module,dataset):
     acc = 0
-    total = 0
     device = next(model.parameters()).device
     all_labels,all_outputs = [],[]
     mode = model.training
