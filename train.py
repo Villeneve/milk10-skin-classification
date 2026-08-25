@@ -10,7 +10,7 @@ from src.utils import *
 
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, f1_score
 from seaborn import heatmap
 from tqdm.autonotebook import tqdm
 
@@ -118,7 +118,7 @@ for epoch in epoch_bar:
     # print(torch.cuda.memory_summary(gpu))
 
     if epoch == args.epochs//3:
-        opt.param_groups[0]['lr'] = 1e-5
+        opt.param_groups[0]['lr'] = 1e-4
         for p in model.parameters():
             p.requires_grad_(True)
         model.train()
@@ -142,7 +142,7 @@ for epoch in epoch_bar:
             "acc":f"{model.acc*100:.2f}"
         })
 
-    val_acc,matrix = accuracy(model,val_data,save=True)
+    val_acc,matrix,f1 = accuracy(model,val_data)
     if val_acc > best_acc:
         best_acc = val_acc
         dict_save = {
@@ -154,7 +154,15 @@ for epoch in epoch_bar:
             "matrix":matrix
         }
         torch.save(dict_save,f'best_{args.model}.pt')
-        heatmap(matrix,fmt='.2f',annot=True)
+        heatmap(
+            matrix/matrix.sum(1,keepdims=True)*100,
+            fmt='.2f',
+            annot=True,
+            xticklabels=["benign","malignant"],
+            yticklabels=["benign","malignant"],
+        )
+        plt.xlabel("Predict"); plt.ylabel("Real")
+        plt.title(f"F1 = {f1*100:.2f}%")
         plt.savefig(f'confusion_matrix_{args.model}.png')
         plt.close()
     epoch_bar.set_postfix({

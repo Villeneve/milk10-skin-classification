@@ -71,7 +71,7 @@ if __name__ == "__main__":
         help="Escolha o modelo para o classificador",
     )
     args = parser.parse_args()
-    with torch.inference_mode():
-        get_model(args.model).train()(torch.randn(1,3,256,256))
-    summary(get_model(args.model),(1,3,256,256),verbose=1,device=torch.device('cpu'))
+    # with torch.inference_mode():
+        # get_model(args.model).train()(torch.randn(1,3,256,256))
+    summary(get_model(args.model),(32,3,256,256),verbose=1,device=torch.device('cpu'))
     # print(f"Model: {args.model}")
