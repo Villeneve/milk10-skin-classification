@@ -111,7 +111,7 @@ val_data = DataLoader(
 model.acc = None
 model.loss = None
 epoch_bar = tqdm(range(args.epochs),position=0)
-best_acc = -1
+best_f1 = -1
 model.eval()
 for epoch in epoch_bar:
     batch_bar = tqdm(data,position=1,leave=False)
@@ -143,21 +143,28 @@ for epoch in epoch_bar:
         })
 
     val_acc,matrix,f1 = accuracy(model,val_data)
-    if val_acc > best_acc:
-        best_acc = val_acc
+    if f1 > best_f1:
+        best_f1 = f1
         dict_save = {
             "model_name":args.model,
             "model":model.state_dict(),
             "opt":opt.state_dict(),
             "epochs":args.epochs,
-            "acc":best_acc,
-            "matrix":matrix
+            "acc":val_acc,
+            "f1_score":f1,
+            "matrix":matrix,
         }
         torch.save(dict_save,f'best_{args.model}.pt')
+
+        # HeatMap
+        annot_labels = np.empty_like(matrix,dtype=object)
+        for i in range(matrix.shape[0]):
+            for j in range(matrix.shape[1]):
+                annot_labels[i,j]=f"N: {matrix[i,j]}\nP: {matrix[i,j]/matrix.sum(0)[j]*100:.2f}\nR: {matrix[i,j]/matrix.sum(1)[i]*100:.2f}"
         heatmap(
             matrix/matrix.sum(1,keepdims=True)*100,
-            fmt='.2f',
-            annot=True,
+            fmt="",
+            annot=annot_labels,
             xticklabels=["benign","malignant"],
             yticklabels=["benign","malignant"],
         )
@@ -165,6 +172,7 @@ for epoch in epoch_bar:
         plt.title(f"F1 = {f1*100:.2f}%")
         plt.savefig(f'confusion_matrix_{args.model}.png')
         plt.close()
+
     epoch_bar.set_postfix({
         "val_acc":f"{val_acc:.2f}"
     })
