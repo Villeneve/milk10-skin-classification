@@ -99,7 +99,7 @@ val_data = ImageLoader(
     )
 val_data = DataLoader(
     val_data,
-    batch_size=128,
+    batch_size=64,
     shuffle=False,
     num_workers=4,
     prefetch_factor=2,
