@@ -63,7 +63,7 @@ opt = torch.optim.Adam(
 
 aug_transform=v2.Compose([
     v2.Resize(256),
-    v2.Pad(256//2,padding_mode='reflect'),
+    v2.Pad(55,padding_mode='reflect'),
     v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
     v2.CenterCrop((256,256)),
     model.transforms(),
@@ -74,7 +74,7 @@ data = ImageLoader(
         imgs_path="/storage/SSD1/.data/milk10k/images/",
         metadata_path="/storage/SSD1/.data/milk10k/metadata.csv",
         transforms=v2.ToImage(),
-        train=True
+        train=True,
     )
 data = DataLoader(
     data,
@@ -89,7 +89,7 @@ val_data = ImageLoader(
         imgs_path="/storage/SSD1/.data/milk10k/images/",
         metadata_path="/storage/SSD1/.data/milk10k/metadata.csv",
         transforms=model.transforms(),
-        train=False
+        train=False,
     )
 val_data = DataLoader(
     val_data,
