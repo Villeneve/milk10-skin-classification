@@ -49,6 +49,12 @@ parser.add_argument(
     default=0,
     required=True,
 )
+parser.add_argument(
+    '--bs_val',
+    type=int,
+    default=64,
+    required=False,
+)
 args = parser.parse_args()
 
 #%%
@@ -100,7 +106,7 @@ val_data = ImageLoader(
     )
 val_data = DataLoader(
     val_data,
-    batch_size=64,
+    batch_size=args.bs_val,
     shuffle=False,
     num_workers=4,
     prefetch_factor=2,
