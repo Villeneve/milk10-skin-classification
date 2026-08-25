@@ -222,3 +222,4 @@ __marimo__/
 .weights/
 *.pt
 *.png
+.DS_Store
