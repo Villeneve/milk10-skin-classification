@@ -192,6 +192,15 @@ for epoch in epoch_bar:
         plt.savefig(f'plots/confusion_matrix_{args.model}.png')
         plt.close()
 
+        # Curva ROC
+        fpr, tpr = roc
+        plt.figure()
+        plt.title(f"AUC = {auc*100:.2f}%")
+        plt.plot(fpr,tpr)
+        plt.plot([0,1],[0,1],"--")
+        plt.savefig(f"plots/roc_{args.model}.png")
+        plt.close()
+
     # Curva acc
     plt.figure()
     plt.plot(np.array(history["acc"])*100,label="acc")
@@ -201,15 +210,6 @@ for epoch in epoch_bar:
     plt.xlabel("Epochs")
     plt.ylabel("%")
     plt.savefig(f"plots/accuracy_{args.model}.png")
-    plt.close()
-
-    # Curva ROC
-    fpr, tpr = roc
-    plt.figure()
-    plt.title(f"AUC = {auc*100:.2f}%")
-    plt.plot(fpr,tpr)
-    plt.plot([0,1],[0,1],"--")
-    plt.savefig(f"plots/roc_{args.model}.png")
     plt.close()
 
     epoch_bar.set_postfix({
