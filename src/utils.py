@@ -6,7 +6,7 @@ import torchvision
 from torchvision.transforms import v2
 from torchvision.io import decode_image
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, f1_score, balanced_accuracy_score
+from sklearn.metrics import confusion_matrix, f1_score, balanced_accuracy_score, accuracy_score
 from seaborn import heatmap
 
 import matplotlib.pyplot as plt
@@ -88,7 +88,7 @@ def accuracy(model:torch.nn.Module,dataset):
     all_labels = torch.cat(all_labels,0).cpu().numpy()
     all_outputs = torch.cat(all_outputs,0).cpu().numpy()
     matrix = confusion_matrix(all_labels,all_outputs)
-    acc = balanced_accuracy_score(all_labels,all_outputs)
+    acc = accuracy_score(all_labels,all_outputs)
     f1 = f1_score(all_labels,all_outputs,average="macro")
     return acc,matrix,f1
 
