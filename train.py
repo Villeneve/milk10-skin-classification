@@ -115,11 +115,18 @@ val_data = DataLoader(
 )
 
 #%%
-model.acc = None
-model.loss = None
+acc = None
+loss = None
 epoch_bar = tqdm(range(args.epochs),position=0)
 best_f1 = -1
 model.eval()
+acc
+history = {
+    "acc":[],
+    "val_acc":[],
+    "loss":[],
+    "val_loss":[],
+}
 for epoch in epoch_bar:
     batch_bar = tqdm(data,position=1,leave=False)
     # print(torch.cuda.memory_summary(gpu))
@@ -141,15 +148,19 @@ for epoch in epoch_bar:
         loss_.backward()
         opt.step()
 
-        acc_train_ = (label==output.argmax(1)).sum()/len(label)
-        model.acc = acc_train_ if model.acc is None else .98*model.acc+(1-.98)*acc_train_
-        model.loss = loss_.item() if model.loss is None else .98*model.loss+(1-.98)*loss_.item()
+        acc_train_ = (label==output.argmax(1)).sum().item()/len(label)
+        acc = acc_train_ if acc is None else .98*acc+(1-.98)*acc_train_
+        loss = loss_.item() if loss is None else .98*loss+(1-.98)*loss_.item()
         batch_bar.set_postfix({
-            "loss":f"{model.loss:.4f}",
-            "acc":f"{model.acc*100:.2f}"
+            "loss":f"{loss:.4f}",
+            "acc":f"{acc*100:.2f}"
         })
 
     val_acc,matrix,f1 = accuracy(model,val_data)
+    history["acc"].append(acc)
+    history["val_acc"].append(val_acc)
+
+    # Save model logs and weights
     if f1 > best_f1:
         best_f1 = f1
         dict_save = {
@@ -177,8 +188,19 @@ for epoch in epoch_bar:
         )
         plt.xlabel("Predict"); plt.ylabel("Real")
         plt.title(f"F1 = {f1*100:.2f}%")
-        plt.savefig(f'confusion_matrix_{args.model}.png')
+        plt.savefig(f'plots/confusion_matrix_{args.model}.png')
         plt.close()
+
+    # Curva acc
+    plt.figure()
+    plt.plot(np.array(history["acc"])*100,label="acc")
+    plt.plot(np.array(history["val_acc"])*100,label="val_acc")
+    plt.legend()
+    plt.title("Accuracy Curve")
+    plt.xlabel("Epochs")
+    plt.ylabel("%")
+    plt.savefig(f"plots/accuracy_{args.model}.png")
+    plt.close()
 
     epoch_bar.set_postfix({
         "val_acc":f"{val_acc:.2f}"

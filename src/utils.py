@@ -90,7 +90,7 @@ def accuracy(model:torch.nn.Module,dataset):
     matrix = confusion_matrix(all_labels,all_outputs)
     acc = balanced_accuracy_score(all_labels,all_outputs)
     f1 = f1_score(all_labels,all_outputs,average="macro")
-    return acc*100,matrix,f1
+    return acc,matrix,f1
 
 
 if __name__ == "__main__":
