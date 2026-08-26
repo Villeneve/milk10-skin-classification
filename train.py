@@ -10,7 +10,7 @@ from src.utils import *
 
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, f1_score
+from sklearn.metrics import confusion_matrix, f1_score, roc_curve
 from seaborn import heatmap
 from tqdm.autonotebook import tqdm
 
@@ -57,7 +57,9 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-#%%
+#%% --------------------------------------------------------------------
+### ---- Declara os modelos, otimizadores, augmentations e losses ------
+### --------------------------------------------------------------------
 gpu = torch.device(f"cuda:{args.gpu}")
 model = get_model(args.model).to(gpu)
 model.eval()
@@ -67,7 +69,6 @@ opt = torch.optim.AdamW(
     args.learning_rate,
     weight_decay=1e-4
 )
-
 aug_transform=v2.Compose([
     v2.Resize(model.transforms().resize_size[0]),
     v2.ToDtype(torch.float32,scale=True),
@@ -156,7 +157,7 @@ for epoch in epoch_bar:
             "acc":f"{acc*100:.2f}"
         })
 
-    val_acc,matrix,f1 = accuracy(model,val_data)
+    val_acc,matrix,f1,roc,auc = metrics(model,val_data)
     history["acc"].append(acc)
     history["val_acc"].append(val_acc)
 
@@ -200,6 +201,15 @@ for epoch in epoch_bar:
     plt.xlabel("Epochs")
     plt.ylabel("%")
     plt.savefig(f"plots/accuracy_{args.model}.png")
+    plt.close()
+
+    # Curva ROC
+    fpr, tpr = roc
+    plt.figure()
+    plt.title(f"AUC = {auc*100:.2f}%")
+    plt.plot(fpr,tpr)
+    plt.plot([0,1],[0,1],"--")
+    plt.savefig(f"plots/roc_{args.model}.png")
     plt.close()
 
     epoch_bar.set_postfix({

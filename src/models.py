@@ -14,8 +14,9 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
     if model_name == "inception":
         md = models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT)
         md.aux_logits=False
+        in_features = md.fc.in_features
         md.fc = nn.Sequential(
-            setXavier_(nn.Linear(2048,num_outs)),
+            setXavier_(nn.Linear(in_features,num_outs)),
         )
         for p in md.parameters():
             p.requires_grad_(False)
@@ -39,7 +40,6 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
     if model_name == "vgg16":
         md = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
         md.classifier = nn.Sequential(
-            nn.Dropout(.25),
             setXavier_(nn.Linear(25088,num_outs)),
         )
         for p in md.parameters():
@@ -51,9 +51,9 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
     
     if model_name == "resnet34":
         md = models.resnet34(weights=models.ResNet34_Weights.DEFAULT)
+        in_features = md.fc.in_features
         md.fc = nn.Sequential(
-            nn.Dropout(.25),
-            setXavier_(nn.Linear(512,num_outs)),
+            setXavier_(nn.Linear(in_features,num_outs)),
         )
         for p in md.parameters():
             p.requires_grad_(False)
