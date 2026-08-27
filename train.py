@@ -139,11 +139,11 @@ for epoch in epoch_bar:
         model.train()
         # print("\nNova etapa")
 
-    for img,_,label in batch_bar:
-        img = img.to(gpu, non_blocking=True)
-        img = aug_transform(img)
+    for derm,_,label in batch_bar:
+        derm = derm.to(gpu, non_blocking=True)
+        derm = aug_transform(derm)
         label = label.to(gpu, non_blocking=True)
-        output = model(img)
+        output = model(derm)
         loss_ = lce(output,label)
         opt.zero_grad()
         loss_.backward()

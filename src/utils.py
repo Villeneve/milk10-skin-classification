@@ -27,41 +27,49 @@ def setXavier_(layer):
     torch.nn.init.zeros_(layer.bias)
     return layer
 
+import os
+import pandas as pd
+import torch
+from PIL import Image
+from torch.utils.data import Dataset
+from sklearn.model_selection import train_test_split
+
+
 class ImageLoader(Dataset):
-    def __init__(self, imgs_path:str, metadata_path:str, transforms=None, train=True):
+    def __init__(self, imgs_path, metadata_path, transforms=None, train=True):
         super().__init__()
         self.imgs_path = imgs_path
         self.transforms = transforms
-        self.train = train
-        self.df = pd.read_csv(metadata_path,)
-        self.df = self.df.loc[:,["isic_id","image_type","diagnosis_1"]]
-        self.df = self.df[self.df['diagnosis_1']!="Indeterminate"]
-        self.df["diagnosis_1"] = self.df["diagnosis_1"].apply(lambda x: 0 if x == "Benign" else 1)
-        self.df["image_type"] = self.df["image_type"].apply(lambda x: 1 if x == "dermoscopic" else 0)
-        self.df_train,self.df_test = train_test_split(
-            self.df,
-            test_size=.20,
-            random_state=42,
-            stratify=self.df["diagnosis_1"]
+
+        df = pd.read_csv(metadata_path)
+        df = df[df["diagnosis_1"] != "Indeterminate"].copy()
+        df["label"] = (df["diagnosis_1"] != "Benign").astype(int)
+
+        derm = df[df["image_type"] == "dermoscopic"]
+        clin = df[df["image_type"] != "dermoscopic"]
+        pares = derm.merge(clin, on=["lesion_id", "label"], suffixes=("_d", "_c"))
+
+        tr, te = train_test_split(
+            pares, test_size=0.20, random_state=42, stratify=pares["label"]
         )
-    
-    def __getitem__(self, idx):
-        if self.train:
-            img = decode_image(self.imgs_path+self.df_train.iloc[idx]["isic_id"]+".jpg",mode=torchvision.io.ImageReadMode.RGB)
-            if self.transforms is not None:
-                img = self.transforms(img)
-            return img, *self.df_train.iloc[idx][["image_type","diagnosis_1"]].tolist()
-        else:
-            img = decode_image(self.imgs_path+self.df_test.iloc[idx]["isic_id"]+".jpg",mode=torchvision.io.ImageReadMode.RGB)
-            if self.transforms is not None:
-                img = self.transforms(img)
-            return img, *self.df_test.iloc[idx][["image_type","diagnosis_1"]].tolist()
+        self.df = (tr if train else te).reset_index(drop=True)
 
     def __len__(self):
-        return len(self.df_train) if self.train else len(self.df_test)
+        return len(self.df)
 
-    def counter(self):
-        return self.df_train["diagnosis_1"].value_counts() if self.train else self.df_test["diagnosis_1"].value_counts()
+    def _abrir(self, nome):
+        return decode_image(os.path.join(self.imgs_path, f"{nome}.jpg"),torchvision.io.ImageReadMode.RGB)
+
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
+        derm = self._abrir(row["isic_id_d"])
+        clin = self._abrir(row["isic_id_c"])
+
+        if self.transforms:
+            derm = self.transforms(derm)
+            clin = self.transforms(clin)
+
+        return derm, clin, torch.tensor(row["label"], dtype=torch.long)
 
 def printImage():
     for img,imgType,label in tqdm(data):
