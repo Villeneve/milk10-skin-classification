@@ -17,6 +17,8 @@ from tqdm.autonotebook import tqdm
 import os
 import argparse
 
+os.makedirs('plots', exist_ok=True)
+os.makedirs('weights', exist_ok=True)
 #%%
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -173,7 +175,7 @@ for epoch in epoch_bar:
             "f1_score":f1,
             "matrix":matrix,
         }
-        torch.save(dict_save,f'best_{args.model}.pt')
+        torch.save(dict_save,f'weights/best_{args.model}.pt')
 
         # HeatMap
         annot_labels = np.empty_like(matrix,dtype=object)
