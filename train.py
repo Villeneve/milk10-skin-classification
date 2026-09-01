@@ -16,9 +16,13 @@ from tqdm.autonotebook import tqdm
 
 import os
 import argparse
+from datetime import datetime
 
-os.makedirs('plots', exist_ok=True)
-os.makedirs('weights', exist_ok=True)
+today = datetime.now().strftime("%Y%m%d")
+run_id = datetime.now().strftime('%Y%m%d_%H%M%S')
+os.makedirs(f'runs/{today}/weights',exist_ok=True)
+os.makedirs(f'runs/{today}/plots',exist_ok=True)
+
 #%%
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -174,8 +178,9 @@ for epoch in epoch_bar:
             "acc":val_acc,
             "f1_score":f1,
             "matrix":matrix,
+            "images":"derm"
         }
-        torch.save(dict_save,f'weights/best_{args.model}.pt')
+        torch.save(dict_save,f'runs/{today}/weights/{run_id}_best_{args.model}.pt')
 
         # HeatMap
         annot_labels = np.empty_like(matrix,dtype=object)
@@ -191,7 +196,7 @@ for epoch in epoch_bar:
         )
         plt.xlabel("Predict"); plt.ylabel("Real")
         plt.title(f"F1 = {f1*100:.2f}%")
-        plt.savefig(f'plots/confusion_matrix_{args.model}.png')
+        plt.savefig(f'runs/{today}/plots/{run_id}_confusion_matrix_{args.model}.png')
         plt.close()
 
         # Curva ROC
@@ -200,7 +205,7 @@ for epoch in epoch_bar:
         plt.title(f"AUC = {auc*100:.2f}%")
         plt.plot(fpr,tpr)
         plt.plot([0,1],[0,1],"--")
-        plt.savefig(f"plots/roc_{args.model}.png")
+        plt.savefig(f"runs/{today}/plots/{run_id}_roc_{args.model}.png")
         plt.close()
 
     # Curva acc
@@ -211,7 +216,7 @@ for epoch in epoch_bar:
     plt.title("Accuracy Curve")
     plt.xlabel("Epochs")
     plt.ylabel("%")
-    plt.savefig(f"plots/accuracy_{args.model}.png")
+    plt.savefig(f"runs/{today}/plots/{run_id}_accuracy_{args.model}.png")
     plt.close()
 
     epoch_bar.set_postfix({
