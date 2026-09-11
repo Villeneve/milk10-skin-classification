@@ -87,7 +87,7 @@ def metrics(model:torch.nn.Module,dataset):
     all_labels,all_outputs = [],[]
     mode = model.training
     model.eval()
-    for img,_,label in dataset:
+    for _,img,label in dataset:
         img = img.to(device)
         label = label.to(device)
         output = model(img)
@@ -102,6 +102,14 @@ def metrics(model:torch.nn.Module,dataset):
     fpr,tpr,_ = roc_curve(all_labels,all_outputs[:,1])
     auc = roc_auc_score(all_labels,all_outputs[:,1])
     return acc,matrix,f1,[fpr,tpr],auc
+
+def unfreeze_last_fraction(model, frac=0.3):
+    params = list(model.parameters())
+    k = max(1, int(len(params) * frac))
+    for p in params[:-k]:
+        p.requires_grad_(False)
+    for p in params[-k:]:
+        p.requires_grad_(True)
 
 
 if __name__ == "__main__":

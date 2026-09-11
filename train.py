@@ -81,6 +81,7 @@ aug_transform=v2.Compose([
     v2.Pad(int(model.transforms().crop_size[0]/2**.5-model.transforms().resize_size[0]/2+1),padding_mode='reflect'),
     v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
     v2.CenterCrop((model.transforms().crop_size[0],model.transforms().crop_size[0])),
+    v2.ColorJitter(.2,.2,.2,),
     v2.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
 ])
 val_tf = v2.Compose([
@@ -140,16 +141,17 @@ for epoch in epoch_bar:
 
     if epoch == args.epochs//3:
         opt.param_groups[0]['lr'] = 1e-4
-        for p in model.parameters():
-            p.requires_grad_(True)
-        model.train()
-        # print("\nNova etapa")
+        # for p in model.parameters():
+        #     p.requires_grad_(True)
+        # model.train()
+        # # print("\nNova etapa")
+        unfreeze_last_fraction(model,.3)
 
-    for derm,_,label in batch_bar:
-        derm = derm.to(gpu, non_blocking=True)
-        derm = aug_transform(derm)
+    for _,img,label in batch_bar:
+        img = img.to(gpu, non_blocking=True)
+        img = aug_transform(img)
         label = label.to(gpu, non_blocking=True)
-        output = model(derm)
+        output = model(img)
         loss_ = lce(output,label)
         opt.zero_grad()
         loss_.backward()
