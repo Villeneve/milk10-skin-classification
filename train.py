@@ -69,28 +69,31 @@ args = parser.parse_args()
 gpu = torch.device(f"cuda:{args.gpu}")
 model = get_model(args.model).to(gpu)
 model.eval()
-lce = torch.nn.CrossEntropyLoss(weight=torch.tensor([8187/(2*2373),8187/(2*5814)],device=gpu))
+lce = torch.nn.CrossEntropyLoss(weight=torch.tensor([8187/(2*2373),8187/(2*5814)],device=gpu),label_smoothing=0.05)
 opt = torch.optim.AdamW(
     model.parameters(),
     args.learning_rate,
-    weight_decay=1e-4
+    weight_decay=1e-3
 )
+t = model.transforms()
+r,c = t.resize_size[0], t.crop_size[0]
+pad = int(c/2**.5-r/2+1)
 aug_transform=v2.Compose([
-    v2.Resize(model.transforms().resize_size[0]),
+    v2.RandomResizedCrop(r,scale=(.6,1.0),ratio=(.85,1.18),antialias=True),
     v2.ToDtype(torch.float32,scale=True),
-    v2.Pad(int(model.transforms().crop_size[0]/2**.5-model.transforms().resize_size[0]/2+1),padding_mode='reflect'),
+    v2.Pad(pad,padding_mode='reflect'),
     v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
-    v2.CenterCrop((model.transforms().crop_size[0],model.transforms().crop_size[0])),
+    v2.CenterCrop((c,c)),
     v2.RandomHorizontalFlip(),
-    v2.RandomVerticalFlip(),
-    v2.ColorJitter(.4,.4,.4),
-    v2.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+    v2.ColorJitter(.6,.6,.6,.05),
+    v2.Normalize(mean=t.mean,std=t.std),
+    # v2.RandomErasing(p=.15,value='random')
 ])
 val_tf = v2.Compose([
     v2.Resize(model.transforms().resize_size[0]),
     v2.CenterCrop((model.transforms().crop_size[0],model.transforms().crop_size[0])),
     v2.ToDtype(torch.float32,scale=True),
-    v2.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+    v2.Normalize(mean=t.mean,std=t.std)
 ])
 
 #%%
@@ -129,6 +132,7 @@ acc = None
 loss = None
 epoch_bar = tqdm(range(args.epochs),position=0)
 best_f1 = -1
+best_loss = float('inf')
 model.eval()
 acc
 history = {
@@ -149,7 +153,7 @@ for epoch in epoch_bar:
         # # print("\nNova etapa")
         unfreeze_last_fraction(model,.3)
 
-    for _,img,label in batch_bar:
+    for img,_,label in batch_bar:
         img = img.to(gpu, non_blocking=True)
         img = aug_transform(img)
         label = label.to(gpu, non_blocking=True)
@@ -160,20 +164,22 @@ for epoch in epoch_bar:
         opt.step()
 
         acc_train_ = (label==output.argmax(1)).sum().item()/len(label)
-        acc = acc_train_ if acc is None else .98*acc+(1-.98)*acc_train_
-        loss = loss_.item() if loss is None else .98*loss+(1-.98)*loss_.item()
+        acc = acc_train_ if acc is None else .98*acc_train_+(1-.98)*acc
+        loss = loss_.item() if loss is None else .98*loss_.item()+(1-.98)*loss
         batch_bar.set_postfix({
             "loss":f"{loss:.4f}",
             "acc":f"{acc*100:.2f}"
         })
 
-    val_acc,matrix,f1,roc,auc = metrics(model,val_data)
+    val_acc,matrix,f1,roc,auc,val_loss = metrics(model,val_data)
     history["acc"].append(acc)
     history["val_acc"].append(val_acc)
 
     # Save model logs and weights
-    if f1 > best_f1:
-        best_f1 = f1
+    # if f1 > best_f1:
+        # best_f1 = f1
+    if val_loss.item() < best_loss:
+        best_loss = val_loss.item()
         dict_save = {
             "model_name":args.model,
             "model":model.state_dict(),

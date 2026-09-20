@@ -1,6 +1,7 @@
 #%%
 import torch
 from torch.utils.data import Dataset, DataLoader
+from torch.nn.functional import cross_entropy
 
 import torchvision
 from torchvision.transforms import v2
@@ -87,21 +88,21 @@ def metrics(model:torch.nn.Module,dataset):
     all_labels,all_outputs = [],[]
     mode = model.training
     model.eval()
-    for _,img,label in dataset:
+    for img,_,label in dataset:
         img = img.to(device)
         label = label.to(device)
         output = model(img)
         all_labels.append(label)
         all_outputs.append(torch.softmax(output,1))
     model.train(mode)
-    all_labels = torch.cat(all_labels,0).cpu().numpy()
-    all_outputs = torch.cat(all_outputs,0).cpu().numpy()
-    matrix = confusion_matrix(all_labels,all_outputs.argmax(1))
-    acc = accuracy_score(all_labels,all_outputs.argmax(1))
+    all_labels = torch.cat(all_labels,0).cpu()
+    all_outputs = torch.cat(all_outputs,0).cpu()
+    matrix = confusion_matrix(all_labels.numpy(),all_outputs.numpy().argmax(1))
+    acc = balanced_accuracy_score(all_labels,all_outputs.argmax(1))
     f1 = f1_score(all_labels,all_outputs.argmax(1),average="macro")
     fpr,tpr,_ = roc_curve(all_labels,all_outputs[:,1])
     auc = roc_auc_score(all_labels,all_outputs[:,1])
-    return acc,matrix,f1,[fpr,tpr],auc
+    return acc,matrix,f1,[fpr,tpr],auc,cross_entropy(all_outputs,all_labels)
 
 def unfreeze_last_fraction(model, frac=0.3):
     params = list(model.parameters())
