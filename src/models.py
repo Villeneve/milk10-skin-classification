@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+import timm
 from torchvision import models
 from torchinfo import summary
 
@@ -38,15 +39,15 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
             return md
     
     if model_name == "vgg16":
-        md = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
-        md.classifier = nn.Sequential(
-            setXavier_(nn.Linear(25088,num_outs)),
-        )
+        md = timm.create_model(model_name,pretrained=True,num_classes=2)
+        # md = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
+        # md.classifier = nn.Sequential(
+        #     setXavier_(nn.Linear(25088,num_outs)),
+        # )
         for p in md.parameters():
             p.requires_grad_(False)
-        for p in md.classifier.parameters():
+        for p in md.get_classifier().parameters():
             p.requires_grad_(True)
-        md.transforms = models.VGG16_Weights.DEFAULT.transforms
         return md
     
     if model_name == "resnet34":

@@ -88,7 +88,7 @@ def metrics(model:torch.nn.Module,dataset):
     all_labels,all_outputs = [],[]
     mode = model.training
     model.eval()
-    for img,_,label in dataset:
+    for _,img,label in dataset:
         img = img.to(device)
         label = label.to(device)
         output = model(img)

@@ -75,8 +75,8 @@ opt = torch.optim.AdamW(
     args.learning_rate,
     weight_decay=1e-3
 )
-t = model.transforms()
-r,c = t.resize_size[0], t.crop_size[0]
+t = model.default_cfg
+r,c = t["input_size"][1], t["input_size"][1]
 pad = int(c/2**.5-r/2+1)
 aug_transform=v2.Compose([
     v2.RandomResizedCrop(r,scale=(.6,1.0),ratio=(.85,1.18),antialias=True),
@@ -86,14 +86,14 @@ aug_transform=v2.Compose([
     v2.CenterCrop((c,c)),
     v2.RandomHorizontalFlip(),
     v2.ColorJitter(.6,.6,.6,.05),
-    v2.Normalize(mean=t.mean,std=t.std),
+    v2.Normalize(mean=t["mean"],std=t["std"]),
     # v2.RandomErasing(p=.15,value='random')
 ])
 val_tf = v2.Compose([
-    v2.Resize(model.transforms().resize_size[0]),
-    v2.CenterCrop((model.transforms().crop_size[0],model.transforms().crop_size[0])),
+    v2.Resize(c),
+    v2.CenterCrop((c,c)),
     v2.ToDtype(torch.float32,scale=True),
-    v2.Normalize(mean=t.mean,std=t.std)
+    v2.Normalize(mean=t["mean"],std=t["std"])
 ])
 
 #%%
@@ -146,14 +146,14 @@ for epoch in epoch_bar:
     # print(torch.cuda.memory_summary(gpu))
 
     if epoch == args.epochs//3:
-        opt.param_groups[0]['lr'] = 1e-4
+        opt.param_groups[0]['lr'] = 1e-5
         # for p in model.parameters():
         #     p.requires_grad_(True)
         # model.train()
         # # print("\nNova etapa")
         unfreeze_last_fraction(model,.3)
 
-    for img,_,label in batch_bar:
+    for _,img,label in batch_bar:
         img = img.to(gpu, non_blocking=True)
         img = aug_transform(img)
         label = label.to(gpu, non_blocking=True)
