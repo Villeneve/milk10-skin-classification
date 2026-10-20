@@ -75,19 +75,23 @@ opt = torch.optim.AdamW(
     args.learning_rate,
     weight_decay=1e-3
 )
+sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt,args.epochs,1e-5)
 t = model.default_cfg
 r,c = t["input_size"][1], t["input_size"][1]
+print(c)
 pad = int(c/2**.5-r/2+1)
 aug_transform=v2.Compose([
-    v2.RandomResizedCrop(r,scale=(.6,1.0),ratio=(.85,1.18),antialias=True),
+    v2.RandomResizedCrop((c,c),scale=(.8,1),ratio=(.85,1.18),antialias=True),
     v2.ToDtype(torch.float32,scale=True),
-    v2.Pad(pad,padding_mode='reflect'),
-    v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
-    v2.CenterCrop((c,c)),
+    # v2.Pad(pad,padding_mode='reflect'),
+    # v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
+    # v2.Resize(c+c*10//100),
+    # v2.CenterCrop((c,c)),
+    # v2.RandomCrop((c,c),padding=0,padding_mode='reflect'),
     v2.RandomHorizontalFlip(),
-    v2.ColorJitter(.6,.6,.6,.05),
+    # v2.ColorJitter(.6,.6,.6,.05),
+    v2.RandomErasing(p=.10,value='random'),
     v2.Normalize(mean=t["mean"],std=t["std"]),
-    # v2.RandomErasing(p=.15,value='random')
 ])
 val_tf = v2.Compose([
     v2.Resize(c),
@@ -123,17 +127,17 @@ val_data = DataLoader(
     shuffle=False,
     num_workers=4,
     prefetch_factor=2,
-    pin_memory=False,
+    pin_memory=True,
     persistent_workers=True
 )
 
 #%%
 acc = None
 loss = None
-epoch_bar = tqdm(range(args.epochs),position=0)
+epoch_bar = tqdm(range(args.epochs),position=0,mininterval=1.0)
 best_f1 = -1
 best_loss = float('inf')
-model.eval()
+# model.eval()
 acc
 history = {
     "acc":[],
@@ -141,9 +145,9 @@ history = {
     "loss":[],
     "val_loss":[],
 }
+model.train()
 for epoch in epoch_bar:
-    batch_bar = tqdm(data,position=1,leave=False)
-    # print(torch.cuda.memory_summary(gpu))
+    batch_bar = tqdm(data,position=1,leave=False,mininterval=2.0)
 
     if epoch == args.epochs//3:
         opt.param_groups[0]['lr'] = 1e-5
@@ -159,27 +163,30 @@ for epoch in epoch_bar:
         label = label.to(gpu, non_blocking=True)
         output = model(img)
         loss_ = lce(output,label)
-        opt.zero_grad()
+        opt.zero_grad(set_to_none=True)
         loss_.backward()
         opt.step()
 
-        acc_train_ = (label==output.argmax(1)).sum().item()/len(label)
-        acc = acc_train_ if acc is None else .98*acc_train_+(1-.98)*acc
-        loss = loss_.item() if loss is None else .98*loss_.item()+(1-.98)*loss
-        batch_bar.set_postfix({
-            "loss":f"{loss:.4f}",
-            "acc":f"{acc*100:.2f}"
-        })
-
+        acc_train_ = torch.where(output.argmax(1)==label,1,0).sum()/len(label)
+        acc = acc_train_ if acc is None else (1-.98)*acc_train_+.98*acc
+        loss = loss_ if loss is None else (1-.98)*loss_+.98*loss
+        # batch_bar.set_postfix({
+        #     "loss":f"{loss:.4f}",
+        #     "acc":f"{acc*100:.2f}"
+        # },refresh=False)
+    del img, label, output
+    sched.step()
+    torch.cuda.empty_cache()
     val_acc,matrix,f1,roc,auc,val_loss = metrics(model,val_data)
-    history["acc"].append(acc)
+    history["acc"].append(acc.item())
     history["val_acc"].append(val_acc)
 
     # Save model logs and weights
     # if f1 > best_f1:
         # best_f1 = f1
-    if val_loss.item() < best_loss:
-        best_loss = val_loss.item()
+    val_loss = val_loss.item()
+    if val_loss < best_loss:
+        best_loss = val_loss
         dict_save = {
             "model_name":args.model,
             "model":model.state_dict(),
