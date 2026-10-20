@@ -145,12 +145,11 @@ history = {
     "loss":[],
     "val_loss":[],
 }
-model.train()
 for epoch in epoch_bar:
     batch_bar = tqdm(data,position=1,leave=False,mininterval=2.0)
 
     if epoch == args.epochs//3:
-        opt.param_groups[0]['lr'] = 1e-5
+        # opt.param_groups[0]['lr'] = 1e-5
         # for p in model.parameters():
         #     p.requires_grad_(True)
         # model.train()
