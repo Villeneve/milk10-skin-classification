@@ -75,9 +75,11 @@ opt = torch.optim.AdamW(
     args.learning_rate,
     weight_decay=1e-3
 )
-sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt,args.epochs//3,1e-5)
-t = model.default_cfg
-r,c = t["input_size"][1], t["input_size"][1]
+sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt,args.epochs//3,1e-5,)
+t = model.meta
+# print(t.__dict__)
+# raise SystemExit
+r,c = t.crop_size[0], t.crop_size[0]
 print(c)
 pad = int(c/2**.5-r/2+1)
 aug_transform=v2.Compose([
@@ -91,13 +93,13 @@ aug_transform=v2.Compose([
     v2.RandomHorizontalFlip(),
     # v2.ColorJitter(.6,.6,.6,.05),
     v2.RandomErasing(p=.10,value='random'),
-    v2.Normalize(mean=t["mean"],std=t["std"]),
+    v2.Normalize(mean=t.mean,std=t.std),
 ])
 val_tf = v2.Compose([
     v2.Resize(c),
     v2.CenterCrop((c,c)),
     v2.ToDtype(torch.float32,scale=True),
-    v2.Normalize(mean=t["mean"],std=t["std"])
+    v2.Normalize(mean=t.mean,std=t.std)
 ])
 
 #%%
@@ -174,10 +176,9 @@ for epoch in epoch_bar:
         #     "loss":f"{loss:.4f}",
         #     "acc":f"{acc*100:.2f}"
         # },refresh=False)
-    del img, label, output
-    sched.step()
-    torch.cuda.empty_cache()
+    if epoch <= args.epochs//3: sched.step()
     val_acc,matrix,f1,roc,auc,val_loss = metrics(model,val_data)
+    torch.cuda.empty_cache()
     history["acc"].append(acc.item())
     history["val_acc"].append(val_acc)
 

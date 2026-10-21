@@ -23,7 +23,7 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
             p.requires_grad_(False)
         for p in md.fc.parameters():
             p.requires_grad_(True)
-        md.transforms = models.Inception_V3_Weights.DEFAULT.transforms
+        md.meta = models.Inception_V3_Weights.DEFAULT.transforms()
         return md
 
     if model_name == "efficient":
@@ -35,7 +35,7 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
                 p.requires_grad_(False)
             for p in md.classifier.parameters():
                 p.requires_grad_(True)
-            md.transforms = models.EfficientNet_V2_S_Weights.DEFAULT.transforms
+            md.meta = models.EfficientNet_V2_S_Weights.DEFAULT.transforms()
             return md
     
     if model_name == "vgg16":
@@ -48,6 +48,7 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
             p.requires_grad_(False)
         for p in md.get_classifier().parameters():
             p.requires_grad_(True)
+        md.transforms = md.default_cfg
         return md
     
     if model_name == "resnet34":
@@ -60,7 +61,7 @@ def get_model(model_name:str, num_outs:int=2)->torch.nn.Module:
             p.requires_grad_(False)
         for p in md.fc.parameters():
             p.requires_grad_(True)
-        md.transforms = models.ResNet34_Weights.DEFAULT.transforms
+        md.meta = models.ResNet34_Weights.DEFAULT.transforms()
         return md
 
 if __name__ == "__main__":
