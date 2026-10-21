@@ -82,7 +82,7 @@ def printImage():
     return
 
 @torch.inference_mode()
-def metrics(model:torch.nn.Module,dataset):
+def metrics(model:torch.nn.Module, dataset):
     acc = 0
     device = next(model.parameters()).device
     all_labels,all_outputs = [],[]
@@ -97,9 +97,10 @@ def metrics(model:torch.nn.Module,dataset):
     model.train(mode)
     all_labels = torch.cat(all_labels,0).cpu()
     all_outputs = torch.cat(all_outputs,0).cpu()
-    matrix = confusion_matrix(all_labels.numpy(),all_outputs.numpy().argmax(1))
-    acc = balanced_accuracy_score(all_labels,all_outputs.argmax(1))
-    f1 = f1_score(all_labels,all_outputs.argmax(1),average="macro")
+    all_outputs_argmaxed = all_outputs.argmax(1)
+    matrix = confusion_matrix(all_labels.numpy(),all_outputs_argmaxed.numpy())
+    acc = balanced_accuracy_score(all_labels,all_outputs_argmaxed)
+    f1 = f1_score(all_labels,all_outputs_argmaxed,average="macro")
     fpr,tpr,_ = roc_curve(all_labels,all_outputs[:,1])
     auc = roc_auc_score(all_labels,all_outputs[:,1])
     return acc,matrix,f1,[fpr,tpr],auc,cross_entropy(all_outputs,all_labels)

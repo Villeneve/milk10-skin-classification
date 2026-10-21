@@ -75,7 +75,7 @@ opt = torch.optim.AdamW(
     args.learning_rate,
     weight_decay=1e-3
 )
-sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt,args.epochs,1e-5)
+sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt,args.epochs//3,1e-5)
 t = model.default_cfg
 r,c = t["input_size"][1], t["input_size"][1]
 print(c)
@@ -145,6 +145,7 @@ history = {
     "loss":[],
     "val_loss":[],
 }
+model.train()
 for epoch in epoch_bar:
     batch_bar = tqdm(data,position=1,leave=False,mininterval=2.0)
 
@@ -153,7 +154,7 @@ for epoch in epoch_bar:
         # for p in model.parameters():
         #     p.requires_grad_(True)
         # model.train()
-        # # print("\nNova etapa")
+        print(f"Nova etapa \nLR = {opt.param_groups[0]['lr']}")
         unfreeze_last_fraction(model,.3)
 
     for _,img,label in batch_bar:
@@ -229,7 +230,7 @@ for epoch in epoch_bar:
     plt.plot(np.array(history["acc"])*100,label="acc")
     plt.plot(np.array(history["val_acc"])*100,label="val_acc")
     plt.legend()
-    plt.title("Accuracy Curve")
+    plt.title(f"Accuracy Curve; LR={opt.param_groups[0]['lr']:.3e}")
     plt.xlabel("Epochs")
     plt.ylabel("%")
     plt.savefig(f"runs/{today}/plots/{run_id}_accuracy_{args.model}.png")
