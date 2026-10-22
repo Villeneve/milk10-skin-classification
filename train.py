@@ -83,7 +83,7 @@ r,c = t.crop_size[0], t.crop_size[0]
 print(c)
 pad = int(c/2**.5-r/2+1)
 aug_transform=v2.Compose([
-    v2.RandomResizedCrop((c,c),scale=(.8,1),ratio=(.85,1.18),antialias=True),
+    v2.RandomResizedCrop((c,c),scale=(.75,1),ratio=(.80,1.20),antialias=True),
     v2.ToDtype(torch.float32,scale=True),
     # v2.Pad(pad,padding_mode='reflect'),
     # v2.RandomRotation(180,interpolation=v2.InterpolationMode.BILINEAR),
@@ -176,7 +176,7 @@ for epoch in epoch_bar:
         #     "loss":f"{loss:.4f}",
         #     "acc":f"{acc*100:.2f}"
         # },refresh=False)
-    if epoch <= args.epochs//3: sched.step()
+    if epoch < args.epochs//3: sched.step()
     val_acc,matrix,f1,roc,auc,val_loss = metrics(model,val_data)
     torch.cuda.empty_cache()
     history["acc"].append(acc.item())

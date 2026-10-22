@@ -105,14 +105,15 @@ def metrics(model:torch.nn.Module, dataset):
     auc = roc_auc_score(all_labels,all_outputs[:,1])
     return acc,matrix,f1,[fpr,tpr],auc,cross_entropy(all_outputs,all_labels)
 
-def unfreeze_last_fraction(model, frac=0.3):
-    params = list(model.parameters())
-    k = max(1, int(len(params) * frac))
-    for p in params[:-k]:
-        p.requires_grad_(False)
-    for p in params[-k:]:
-        p.requires_grad_(True)
-
+def unfreeze_last_fraction_layers(model, frac=0.3):
+    layers = list(model.children())
+    k = max(1, int(len(layers) * frac))
+    for layer in layers[:-k]:
+        for p in layer.parameters():
+            p.requires_grad_(False)
+    for layer in layers[-k:]:
+        for p in layer.parameters():
+            p.requires_grad_(True)
 
 if __name__ == "__main__":
 
